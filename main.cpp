@@ -58,10 +58,11 @@ void setCurrentmA(float fVal)
 int main() {
   // Initialise the digital pin LED1 as an output
 
+ 
 
   while (true) {
 
-    for (float i = 0.3f; i < 12.0f; i += 0.5f) {
+   for (float i = 0.1f; i < 12.0f; i += 0.5f) {
       setCurrentmA(i);
       ThisThread::sleep_for(BLINKING_RATE);}
 
