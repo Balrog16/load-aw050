@@ -17,6 +17,9 @@ AnalogOut aout(PA_4);
 
 void setCurrentmA(float fVal);
 void startUp();
+void legacyADV();
+void UART_ADV_TRx();
+void startADV();
 
 void flip() { led = !led; }
 
@@ -26,19 +29,59 @@ int main() {
   CS_ISet1 =0;
   CS_ISet2 = 0;
 
+  setCurrentmA(0);
   startUp();
+  startADV();
+  setCurrentmA(0);
 
-  while (true) {
 
-    for (float i = 0.39; i < 12.0; i += 0.3) {
-      setCurrentmA(i);
-      ThisThread::sleep_for(BLINKING_RATE);
-    }
-  }
+  while(1);
 }
 
+void startADV()
+{
+    uint8_t iCount = 0;
+    uint16_t advInterval = 160; //ms
+    for(iCount=0;iCount<4;iCount++)
+    {
+         // Do UART
+        UART_ADV_TRx();
+        setCurrentmA(0);
+        // wait
+         ThisThread::sleep_for(27ms);         
+        // Adv
+        legacyADV();
+        setCurrentmA(0);
+        // wait
+        ThisThread::sleep_for((advInterval-27)*1ms);      
+    }
 
+    // wait
+    ThisThread::sleep_for(27ms);
 
+    for(iCount=0;iCount<10;iCount++)
+    {
+        legacyADV();
+        setCurrentmA(0);
+        // wait
+        ThisThread::sleep_for((advInterval * 1ms));  
+    }
+
+    
+}
+
+void legacyADV()
+{
+    setCurrentmA(4);
+    ThisThread::sleep_for(5ms);
+}
+
+void UART_ADV_TRx() //using only the maximum of all
+{
+    setCurrentmA(2.3);
+    ThisThread::sleep_for(63ms);
+
+}
 void startUp()
 {
     setCurrentmA(1.8);
