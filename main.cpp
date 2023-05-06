@@ -16,6 +16,7 @@ DigitalOut CS_ISet2(PD_15);
 AnalogOut aout(PA_4);
 
 void setCurrentmA(float fVal);
+void startUp();
 
 void flip() { led = !led; }
 
@@ -25,20 +26,7 @@ int main() {
   CS_ISet1 =0;
   CS_ISet2 = 0;
 
-  // Put it in sleep to begin with
-  CSEn = 1;
-  aout = 0;
-  //setCurrentmA(0);
-  ThisThread::sleep_for(3000ms);
-
-  CSEn = 0;
-  //aout = 0.3;
-  //setCurrentmA(4);
-  setCurrentmA(0.4);
-  ThisThread::sleep_for(3000ms);
-  CSEn = 0;
-  setCurrentmA(6.6);
-    ThisThread::sleep_for(3000ms);
+  startUp();
 
   while (true) {
 
@@ -47,6 +35,14 @@ int main() {
       ThisThread::sleep_for(BLINKING_RATE);
     }
   }
+}
+
+
+
+void startUp()
+{
+    setCurrentmA(1.8);
+    ThisThread::sleep_for(237ms);
 }
 
 void setCurrentmA(float fVal) {
