@@ -31,6 +31,7 @@ int main() {
 
   setCurrentmA(0);
   startUp();
+  ThisThread::sleep_for(200ms);         
   startADV();
   setCurrentmA(0);
 
@@ -46,12 +47,10 @@ void startADV()
     {
          // Do UART
         UART_ADV_TRx();
-        setCurrentmA(0);
         // wait
          ThisThread::sleep_for(27ms);         
         // Adv
         legacyADV();
-        setCurrentmA(0);
         // wait
         ThisThread::sleep_for((advInterval-27)*1ms);      
     }
@@ -62,7 +61,6 @@ void startADV()
     for(iCount=0;iCount<10;iCount++)
     {
         legacyADV();
-        setCurrentmA(0);
         // wait
         ThisThread::sleep_for((advInterval * 1ms));  
     }
@@ -74,18 +72,22 @@ void legacyADV()
 {
     setCurrentmA(4);
     ThisThread::sleep_for(5ms);
+    setCurrentmA(0);
+
 }
 
 void UART_ADV_TRx() //using only the maximum of all
 {
     setCurrentmA(2.3);
     ThisThread::sleep_for(63ms);
+    setCurrentmA(0);
 
 }
 void startUp()
 {
     setCurrentmA(1.8);
     ThisThread::sleep_for(237ms);
+    setCurrentmA(0);
 }
 
 void setCurrentmA(float fVal) {
