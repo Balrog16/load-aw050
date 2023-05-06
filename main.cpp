@@ -10,14 +10,19 @@
 Ticker flipper;
 DigitalOut led(LED1);
 AnalogOut aout(PA_4);
+DigitalOut led1(PB_4);
+
 float i = 0;
 void flip() { led = !led; }
 
 void testDAC()
 {
-  /*aout = 0.3;
+    AnalogOut aout(PA_4);
+
+  aout = 0.3;
   i = i + 0.1;
-  if(i == 1.0f) i=0;*/
+  if(i == 1.0f) i=0;
+  led1 = !led1;
 }
 
 int main() {
