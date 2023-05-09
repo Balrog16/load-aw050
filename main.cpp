@@ -7,7 +7,9 @@
 
 // Blinking rate in milliseconds
 #define BLINKING_RATE 800ms
-#define SCALING_FACTOR 0.107143 //(1.2/11.2) is the equivalent resistance used to scale before the data is fed to ADC
+#define SCALING_FACTOR                                                         \
+  0.107143 //(1.2/11.2) is the equivalent resistance used to scale before the
+           // data is fed to ADC
 #define VREF 3.3
 Ticker flipper;
 DigitalOut led(LED1);
@@ -16,10 +18,10 @@ bool bTestEn = false;
 DigitalOut CSEn(PB_4);
 DigitalOut CS_ISet1(PF_12);
 DigitalOut CS_ISet2(PD_15);
-AnalogOut  aout(PA_4);
-AnalogIn   PB1(PB_1);
-AnalogIn   PF4(PF_4);
-AnalogIn   PC2(PC_2);
+AnalogOut aout(PA_4);
+AnalogIn PB1(PB_1);
+AnalogIn PF4(PF_4);
+AnalogIn PC2(PC_2);
 Timer tCountTime;
 void setCurrentmA(float fVal);
 void startUp();
@@ -34,75 +36,73 @@ int main() {
   printf("\n---Capacitor Bank Energy Characterization---\n");
   // Initialise the digital pin LED1 as an output
   CSEn = 0;
-  CS_ISet1 =0;
+  CS_ISet1 = 0;
   CS_ISet2 = 0;
   setCurrentmA(0);
   waitForCapToCharge();
   startUp();
-  /*ThisThread::sleep_for(200ms);
-  startADV();*/
+  ThisThread::sleep_for(1s);
+  /* -- Cost of 1 legacy ADV -- */
+  printf("\n 2. Play legacy ADV 10 times\n");
+  for (int i = 0; i < 10; i++) {
+    legacyADV();
+    waitForCapToCharge();
+  }
+
+  //startADV();
   setCurrentmA(0);
 
-  while (1){
-        if(bTestEn)
-        {
-          printf("ADC Data PB1 - %05.3f PC2 - %05.3f PF4 - %05.3f\n", PB1.read()*3.3, PC2.read()*3.3, PF4.read()*3.3);
-          ThisThread::sleep_for(2000ms);         
-        }
+  while (1) {
+    if (bTestEn) {
+      printf("ADC Data PB1 - %05.3f PC2 - %05.3f PF4 - %05.3f\n",
+             PB1.read() * 3.3, PC2.read() * 3.3, PF4.read() * 3.3);
+      ThisThread::sleep_for(2000ms);
+    }
   };
-
 }
 
-void startADV()
-{
-    uint8_t iCount = 0;
-    uint16_t advInterval = 160; //ms
-    for(iCount=0;iCount<4;iCount++)
-    {
-         // Do UART
-        UART_ADV_TRx();
-        // wait
-        ThisThread::sleep_for(27ms);         
-        // Adv
-        legacyADV();
-        // wait
-        ThisThread::sleep_for((advInterval-27)*1ms);
-    }
-
+void startADV() {
+  uint8_t iCount = 0;
+  uint16_t advInterval = 160; // ms
+  for (iCount = 0; iCount < 4; iCount++) {
+    // Do UART
+    UART_ADV_TRx();
     // wait
-    //ThisThread::sleep_for(27ms);
+    ThisThread::sleep_for(27ms);
+    // Adv
+    legacyADV();
+    // wait
+    ThisThread::sleep_for((advInterval - 27) * 1ms);
+  }
 
-    for(iCount=0;iCount<10;iCount++)
-    {
-        legacyADV();
-        // wait
-        ThisThread::sleep_for((advInterval * 1ms));
-    }
-    
+  // wait
+  ThisThread::sleep_for(27ms);
+
+  for (iCount = 0; iCount < 10; iCount++) {
+    legacyADV();
+    // wait
+    ThisThread::sleep_for((advInterval * 1ms));
+  }
 }
 
-void legacyADV()
-{
-    setCurrentmA(4);
-    ThisThread::sleep_for(5ms);
-    setCurrentmA(0);
-
+void legacyADV() {
+  setCurrentmA(4);
+  ThisThread::sleep_for(5ms);
+  setCurrentmA(0);
 }
 
-void UART_ADV_TRx() //using only the maximum of all
+void UART_ADV_TRx() // using only the maximum of all
 {
-    setCurrentmA(2.3);
-    ThisThread::sleep_for(63ms);
-    setCurrentmA(0);
-
+  setCurrentmA(2.3);
+  ThisThread::sleep_for(63ms);
+  setCurrentmA(0);
 }
-void startUp()
-{
-    printf("\n1. Startup Routine \n");
-    setCurrentmA(1.8);
-    ThisThread::sleep_for(237ms);
-    setCurrentmA(0);
-    waitForCapToCharge();
+void startUp() {
+  printf("\n1. Startup Routine \n");
+  setCurrentmA(1.8);
+  ThisThread::sleep_for(237ms);
+  setCurrentmA(0);
+  waitForCapToCharge();
 }
 
 void setCurrentmA(float fVal) {
@@ -143,22 +143,23 @@ void setCurrentmA(float fVal) {
   aout = setmA;
 }
 
-void waitForCapToCharge()
-{
-    float fBankVoltage = 0;
-    printf("Wait for Bank to charge to - 9.6V\n");
-    fBankVoltage = PF4.read()*(VREF/SCALING_FACTOR);
-    printf("At this time, Bank voltage is %f V\n", fBankVoltage);
-    tCountTime.start();
-    do
-    {
-      fBankVoltage = PF4.read()*(VREF/SCALING_FACTOR);
-      ThisThread::sleep_for(10ms);
-      //printf("Current charge level is %f V\n", fBankVoltage);
-    }while(fBankVoltage<9.6);
-    tCountTime.stop();
-    printf("The time taken was %llu milliseconds\n", std::chrono::duration_cast<std::chrono::milliseconds>(tCountTime.elapsed_time()).count());
-    tCountTime.reset();
-    printf("Current charge level is %f V\n", fBankVoltage);
-    printf("---Bank is now fully charged!!---\n");
+void waitForCapToCharge() {
+  float fBankVoltage = 0;
+  printf("Wait for Bank to charge to - 9.6V\n");
+  fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
+  printf("At this time, Bank voltage is %f V\n", fBankVoltage);
+  tCountTime.start();
+  do {
+    fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
+    ThisThread::sleep_for(10ms);
+    // printf("Current charge level is %f V\n", fBankVoltage);
+  } while (fBankVoltage < 9.6);
+  tCountTime.stop();
+  printf("The time taken was %llu milliseconds\n",
+         std::chrono::duration_cast<std::chrono::milliseconds>(
+             tCountTime.elapsed_time())
+             .count());
+  tCountTime.reset();
+  printf("Current charge level is %f V\n", fBankVoltage);
+  printf("---Bank is now fully charged!!---\n");
 }
