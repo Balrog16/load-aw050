@@ -4,6 +4,7 @@
  */
 
 #include "mbed.h"
+#include "stdlib.h"
 
 // Blinking rate in milliseconds
 #define BLINKING_RATE 800ms
@@ -29,6 +30,8 @@ void legacyADV();
 void UART_ADV_TRx();
 void startADV();
 void waitForCapToCharge();
+void charDelay();
+float sampleADC(int);
 
 void flip() { led = !led; }
 int main() {
@@ -39,17 +42,19 @@ int main() {
   CS_ISet1 = 0;
   CS_ISet2 = 0;
   setCurrentmA(0);
-  waitForCapToCharge();
-  startUp();
-  ThisThread::sleep_for(1s);
-  /* -- Cost of 1 legacy ADV -- */
-  printf("\n 2. Play legacy ADV 10 times\n");
-  for (int i = 0; i < 10; i++) {
-    legacyADV();
+  for(int i=0;i<10;i++)
     waitForCapToCharge();
-  }
+  for(int i=0;i<10;i++)
+    startUp();
+  /*ThisThread::sleep_for(1s);*/
+  /* -- Cost of 1 legacy ADV -- */
+  /* printf("\n 2. Play legacy ADV 10 times\n");
+   for (int i = 0; i < 10; i++) {
+     legacyADV();
+     waitForCapToCharge();
+   }*/
 
-  //startADV();
+  // startADV();
   setCurrentmA(0);
 
   while (1) {
@@ -150,10 +155,10 @@ void waitForCapToCharge() {
   printf("At this time, Bank voltage is %f V\n", fBankVoltage);
   tCountTime.start();
   do {
-    fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
-    ThisThread::sleep_for(10ms);
+    fBankVoltage = sampleADC(50); // PF4.read() * (VREF / SCALING_FACTOR);
+    ThisThread::sleep_for(1ms);
     // printf("Current charge level is %f V\n", fBankVoltage);
-  } while (fBankVoltage < 9.6);
+  } while (abs(fBankVoltage - 9.6) > 0.18);
   tCountTime.stop();
   printf("The time taken was %llu milliseconds\n",
          std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -162,4 +167,24 @@ void waitForCapToCharge() {
   tCountTime.reset();
   printf("Current charge level is %f V\n", fBankVoltage);
   printf("---Bank is now fully charged!!---\n");
+}
+
+void charDelay() {
+  tCountTime.start();
+  ThisThread::sleep_for(25ms);
+  tCountTime.stop();
+  printf("The time taken was %llu milliseconds\n",
+         std::chrono::duration_cast<std::chrono::milliseconds>(
+             tCountTime.elapsed_time())
+             .count());
+  tCountTime.reset();
+}
+
+float sampleADC(int nSamples) {
+  float fSample = 0;
+  for (int i = 0; i < nSamples; i++) {
+    fSample = fSample + PF4.read();
+  }
+
+  return (fSample / nSamples) * (VREF / SCALING_FACTOR);
 }
