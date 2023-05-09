@@ -7,36 +7,49 @@
 
 // Blinking rate in milliseconds
 #define BLINKING_RATE 800ms
+#define SCALING_FACTOR 0.107143 //(1.2/11.2) is the equivalent resistance used to scale before the data is fed to ADC
+#define VREF 3.3
 Ticker flipper;
 DigitalOut led(LED1);
-
+bool bTestEn = false;
 DigitalOut CSEn(PB_4);
 DigitalOut CS_ISet1(PF_12);
 DigitalOut CS_ISet2(PD_15);
-AnalogOut aout(PA_4);
+AnalogOut  aout(PA_4);
+AnalogIn   PB1(PB_1);
+AnalogIn   PF4(PF_4);
+AnalogIn   PC2(PC_2);
 
 void setCurrentmA(float fVal);
 void startUp();
 void legacyADV();
 void UART_ADV_TRx();
 void startADV();
+void waitForCapToCharge();
 
 void flip() { led = !led; }
-
 int main() {
+
+  printf("\n---Capacitor Bank Energy Characterization---\n");
   // Initialise the digital pin LED1 as an output
   CSEn = 0;
   CS_ISet1 =0;
   CS_ISet2 = 0;
-
   setCurrentmA(0);
-  startUp();
+  waitForCapToCharge();
+ /* startUp();
   ThisThread::sleep_for(200ms);         
-  startADV();
+  startADV();*/
   setCurrentmA(0);
 
+  while (1){
+        if(bTestEn)
+        {
+          printf("ADC Data PB1 - %05.3f PC2 - %05.3f PF4 - %05.3f\n", PB1.read()*3.3, PC2.read()*3.3, PF4.read()*3.3);
+          ThisThread::sleep_for(2000ms);         
+        }
+  };
 
-  while(1);
 }
 
 void startADV()
@@ -64,7 +77,6 @@ void startADV()
         // wait
         ThisThread::sleep_for((advInterval * 1ms));  
     }
-
     
 }
 
@@ -108,7 +120,6 @@ void setCurrentmA(float fVal) {
       m = 13.9429;
       c = -0.1043;
     }
-
     if (fVal >= 5.3 && fVal <= 9.2) {
       m = 12.7761;
       c = 0.1733;
@@ -118,7 +129,6 @@ void setCurrentmA(float fVal) {
       c = 0.55;
     }
   }
-
   // if fVal is zero .. put it to Sleep
   if (fVal == 0) {
     CSEn = 1;
@@ -126,7 +136,19 @@ void setCurrentmA(float fVal) {
     c = 0.0;
   } else
     CSEn = 0;
-
   float setmA = (fVal - c) / m;
   aout = setmA;
+}
+
+void waitForCapToCharge()
+{
+    float fBankVoltage = 0;
+    printf("\n1. Wait for Bank to charge to - 9.6V\n");
+    do
+    {
+      ThisThread::sleep_for(2s);
+      fBankVoltage = PF4.read()*(VREF/SCALING_FACTOR);
+      printf("Current charge level is %f V\n", fBankVoltage);
+    }while(fBankVoltage<9.6);
+    printf("---Bank is now fully charged!!---\n");
 }
