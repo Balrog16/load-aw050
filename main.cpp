@@ -42,17 +42,15 @@ int main() {
   CS_ISet1 = 0;
   CS_ISet2 = 0;
   setCurrentmA(0);
-  for(int i=0;i<10;i++)
-    waitForCapToCharge();
-  for(int i=0;i<10;i++)
-    startUp();
-  /*ThisThread::sleep_for(1s);*/
+  waitForCapToCharge();
+  startUp();
+  ThisThread::sleep_for(1s);
   /* -- Cost of 1 legacy ADV -- */
-  /* printf("\n 2. Play legacy ADV 10 times\n");
-   for (int i = 0; i < 10; i++) {
-     legacyADV();
-     waitForCapToCharge();
-   }*/
+  printf("\n 2. Play legacy ADV 10 times\n");
+  for (int i = 0; i < 10; i++) {
+    legacyADV();
+    waitForCapToCharge();
+  }
 
   // startADV();
   setCurrentmA(0);
@@ -156,9 +154,10 @@ void waitForCapToCharge() {
   tCountTime.start();
   do {
     fBankVoltage = sampleADC(50); // PF4.read() * (VREF / SCALING_FACTOR);
+    printf("After filtering - %f V\n", fBankVoltage);
     ThisThread::sleep_for(1ms);
     // printf("Current charge level is %f V\n", fBankVoltage);
-  } while (abs(fBankVoltage - 9.6) > 0.18);
+  } while (abs(fBankVoltage - 9.6) > 0.38);
   tCountTime.stop();
   printf("The time taken was %llu milliseconds\n",
          std::chrono::duration_cast<std::chrono::milliseconds>(
