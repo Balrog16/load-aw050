@@ -39,7 +39,7 @@ int main() {
   setCurrentmA(0);
   waitForCapToCharge();
   startUp();
-  /*ThisThread::sleep_for(200ms);         
+  /*ThisThread::sleep_for(200ms);
   startADV();*/
   setCurrentmA(0);
 
@@ -62,21 +62,21 @@ void startADV()
          // Do UART
         UART_ADV_TRx();
         // wait
-         ThisThread::sleep_for(27ms);         
+        ThisThread::sleep_for(27ms);         
         // Adv
         legacyADV();
         // wait
-        ThisThread::sleep_for((advInterval-27)*1ms);      
+        ThisThread::sleep_for((advInterval-27)*1ms);
     }
 
     // wait
-    ThisThread::sleep_for(27ms);
+    //ThisThread::sleep_for(27ms);
 
     for(iCount=0;iCount<10;iCount++)
     {
         legacyADV();
         // wait
-        ThisThread::sleep_for((advInterval * 1ms));  
+        ThisThread::sleep_for((advInterval * 1ms));
     }
     
 }
@@ -146,16 +146,19 @@ void setCurrentmA(float fVal) {
 void waitForCapToCharge()
 {
     float fBankVoltage = 0;
-    printf("\nWait for Bank to charge to - 9.6V\n");
+    printf("Wait for Bank to charge to - 9.6V\n");
+    fBankVoltage = PF4.read()*(VREF/SCALING_FACTOR);
+    printf("At this time, Bank voltage is %f V\n", fBankVoltage);
     tCountTime.start();
     do
     {
-      ThisThread::sleep_for(200ms);
       fBankVoltage = PF4.read()*(VREF/SCALING_FACTOR);
+      ThisThread::sleep_for(10ms);
       //printf("Current charge level is %f V\n", fBankVoltage);
     }while(fBankVoltage<9.6);
     tCountTime.stop();
     printf("The time taken was %llu milliseconds\n", std::chrono::duration_cast<std::chrono::milliseconds>(tCountTime.elapsed_time()).count());
+    tCountTime.reset();
     printf("Current charge level is %f V\n", fBankVoltage);
     printf("---Bank is now fully charged!!---\n");
 }
