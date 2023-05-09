@@ -12,6 +12,7 @@
 Ticker flipper;
 DigitalOut led(LED1);
 bool bTestEn = false;
+
 DigitalOut CSEn(PB_4);
 DigitalOut CS_ISet1(PF_12);
 DigitalOut CS_ISet2(PD_15);
@@ -19,7 +20,7 @@ AnalogOut  aout(PA_4);
 AnalogIn   PB1(PB_1);
 AnalogIn   PF4(PF_4);
 AnalogIn   PC2(PC_2);
-
+Timer tCountTime;
 void setCurrentmA(float fVal);
 void startUp();
 void legacyADV();
@@ -144,11 +145,15 @@ void waitForCapToCharge()
 {
     float fBankVoltage = 0;
     printf("\n1. Wait for Bank to charge to - 9.6V\n");
+    tCountTime.start();
     do
     {
-      ThisThread::sleep_for(2s);
+      ThisThread::sleep_for(200ms);
       fBankVoltage = PF4.read()*(VREF/SCALING_FACTOR);
-      printf("Current charge level is %f V\n", fBankVoltage);
+      //printf("Current charge level is %f V\n", fBankVoltage);
     }while(fBankVoltage<9.6);
+    tCountTime.stop();
+     printf("The time taken was %llu milliseconds\n", std::chrono::duration_cast<std::chrono::milliseconds>(tCountTime.elapsed_time()).count());
+    printf("Current charge level is %f V\n", fBankVoltage);
     printf("---Bank is now fully charged!!---\n");
 }
