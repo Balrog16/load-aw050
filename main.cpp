@@ -25,7 +25,7 @@ AnalogIn PF4(PF_4);
 AnalogIn PC2(PC_2);
 Timer tCountTime;
 void setCurrentmA(float fVal);
-void startUp();
+std::chrono::milliseconds startUp();
 void legacyADV();
 void UART_ADV_TRx();
 void startADV();
@@ -49,10 +49,14 @@ int main() {
      900 ms and upon poweron from a blank state takes approx 30 sec*/
   std::chrono::milliseconds timeMS = waitForCapToCharge(50, 300);
   printf("Time to fullycharge is %llu\n", timeMS.count());
-/*
+
+  /* Check startup load */
   for (int i = 0; i < 5; i++)
-    startUp();
-*/
+  {
+    timeMS = startUp();
+    printf("Time to fullycharge is %llu\n",  timeMS.count());
+  }
+
   while (1) {
     if (bTestEn) {
       printf("ADC Data PB1 - %05.3f PC2 - %05.3f PF4 - %05.3f\n",
@@ -98,13 +102,13 @@ void UART_ADV_TRx() // using only the maximum of all
   ThisThread::sleep_for(63ms);
   setCurrentmA(0);
 }
-void startUp() {
+std::chrono::milliseconds startUp() {
   printf("\n1. Startup Routine \n");
   setCurrentmA(1.8);
   ThisThread::sleep_for(237ms);
   setCurrentmA(0);
   /* Sample duration 3ms and resample every 250ms */
-  waitForCapToCharge(500, 250);
+  return waitForCapToCharge(50, 50);
 }
 
 void setCurrentmA(float fVal) {
@@ -158,7 +162,7 @@ std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
   do {
     fBankVoltage = sampleADC(nSamples); // PF4.read() * (VREF / SCALING_FACTOR);
     ThisThread::sleep_for(reSample * 1ms);
-    printf("voltage is %f V\n", fBankVoltage);
+    //printf("voltage is %f V\n", fBankVoltage);
   } while (abs(fBankVoltage - 9.6) > 0.3);
   tCountTime.stop();
   timeElapsedms = std::chrono::duration_cast<std::chrono::milliseconds>(tCountTime.elapsed_time());
