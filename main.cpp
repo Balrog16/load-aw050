@@ -26,11 +26,11 @@ AnalogIn PC2(PC_2);
 Timer tCountTime;
 void setCurrentmA(float fVal);
 std::chrono::milliseconds startUp();
-std::chrono::milliseconds legacyADV();
+void legacyADV();
 void UART_ADV_TRx();
 void startADV();
 std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
-                                             uint16_t reSample);
+                                             uint16_t reSample, float fThreshV);
 void charDelay();
 float sampleADC(int);
 
@@ -47,21 +47,19 @@ int main() {
   /* Time to take average of 500 samples is 3 ms and
      at lowest current of 270uA, the ripple has a duration of
      900 ms and upon poweron from a blank state takes approx 30 sec*/
-  std::chrono::milliseconds timeMS = waitForCapToCharge(50, 300);
+  std::chrono::milliseconds timeMS = waitForCapToCharge(50, 300, 9.6);
   printf("Time to fullycharge is %llu\n", timeMS.count());
 
   /* Check startup load */
-  for (int i = 0; i < 5; i++)
-  {
+  for (int i = 0; i < 1; i++) {
     timeMS = startUp();
-    printf("Time to fullycharge is %llu\n",  timeMS.count());
+    printf("Time to fully charge is %llu\n", timeMS.count());
   }
 
-   /* Check startup load */
-  for (int i = 0; i < 5; i++)
-  {
-    timeMS = legacyADV();
-    printf("Time to fullycharge is %llu\n",  timeMS.count());
+   printf("Start Legacy ADV for 15000 times\n");
+  /* Check legacy ADV load */
+  for (int i = 0; i < 15000; i++) {
+    legacyADV();
   }
 
   while (1) {
@@ -97,11 +95,16 @@ void startADV() {
   }
 }
 
-std::chrono::milliseconds legacyADV() {
-  setCurrentmA(4);
+void legacyADV() {
+  setCurrentmA(5);
   ThisThread::sleep_for(5ms);
   setCurrentmA(0);
-  return waitForCapToCharge(5, 1);
+  ThisThread::sleep_for(160ms);
+  // measure and if dropped below some thing then wait for it to raise
+  float fBankVoltage = 0;
+  fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
+  if (fBankVoltage < 6.0)
+    waitForCapToCharge(5, 5, 9.6);
 }
 
 void UART_ADV_TRx() // using only the maximum of all
@@ -116,7 +119,53 @@ std::chrono::milliseconds startUp() {
   ThisThread::sleep_for(237ms);
   setCurrentmA(0);
   /* Sample duration 3ms and resample every 250ms */
-  return waitForCapToCharge(50, 50);
+  return waitForCapToCharge(50, 50, 9.6);
+}
+
+std::chrono::milliseconds
+waitForCapToCharge(uint16_t nSamples, uint16_t reSample, float fThreshV) {
+
+  std::chrono::milliseconds timeElapsedms;
+  float fBankVoltage = 0;
+  // printf("Wait for Bank to charge to - %f V\n", fThreshV);
+  fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
+  // printf("At this time, Bank voltage is %f V\n", fBankVoltage);
+
+  tCountTime.start();
+  do {
+    fBankVoltage = sampleADC(nSamples); // PF4.read() * (VREF / SCALING_FACTOR);
+    ThisThread::sleep_for(reSample * 1ms);
+    // printf("voltage is %f V\n", fBankVoltage);
+  } while (abs(fBankVoltage - fThreshV) > 0.3);
+  tCountTime.stop();
+  timeElapsedms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      tCountTime.elapsed_time());
+  tCountTime.reset();
+
+  // printf("Current charge level is %f V\n", fBankVoltage);
+  // printf("---Bank is now fully charged!!---\n");
+
+  return timeElapsedms;
+}
+
+void charDelay() {
+  tCountTime.start();
+  ThisThread::sleep_for(25ms);
+  tCountTime.stop();
+  printf("The time taken was %llu milliseconds\n",
+         std::chrono::duration_cast<std::chrono::milliseconds>(
+             tCountTime.elapsed_time())
+             .count());
+  tCountTime.reset();
+}
+
+float sampleADC(int nSamples) {
+  float fSample = 0;
+  for (int i = 0; i < nSamples; i++) {
+    fSample = fSample + PF4.read();
+  }
+
+  return (fSample / nSamples) * (VREF / SCALING_FACTOR);
 }
 
 void setCurrentmA(float fVal) {
@@ -155,49 +204,4 @@ void setCurrentmA(float fVal) {
     CSEn = 0;
   float setmA = (fVal - c) / m;
   aout = setmA;
-}
-
-std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
-                                             uint16_t reSample) {
-
-  std::chrono::milliseconds timeElapsedms;
-  float fBankVoltage = 0;
-  printf("Wait for Bank to charge to - 9.6V\n");
-  fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
-  printf("At this time, Bank voltage is %f V\n", fBankVoltage);
-
-  tCountTime.start();
-  do {
-    fBankVoltage = sampleADC(nSamples); // PF4.read() * (VREF / SCALING_FACTOR);
-    ThisThread::sleep_for(reSample * 1ms);
-    //printf("voltage is %f V\n", fBankVoltage);
-  } while (abs(fBankVoltage - 9.6) > 0.3);
-  tCountTime.stop();
-  timeElapsedms = std::chrono::duration_cast<std::chrono::milliseconds>(tCountTime.elapsed_time());
-  tCountTime.reset();
-
-  printf("Current charge level is %f V\n", fBankVoltage);
-  printf("---Bank is now fully charged!!---\n");
-
-  return timeElapsedms;
-}
-
-void charDelay() {
-  tCountTime.start();
-  ThisThread::sleep_for(25ms);
-  tCountTime.stop();
-  printf("The time taken was %llu milliseconds\n",
-         std::chrono::duration_cast<std::chrono::milliseconds>(
-             tCountTime.elapsed_time())
-             .count());
-  tCountTime.reset();
-}
-
-float sampleADC(int nSamples) {
-  float fSample = 0;
-  for (int i = 0; i < nSamples; i++) {
-    fSample = fSample + PF4.read();
-  }
-
-  return (fSample / nSamples) * (VREF / SCALING_FACTOR);
 }
