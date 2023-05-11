@@ -96,10 +96,16 @@ void startADV() {
 }
 
 void legacyADV() {
+  /* Legacy Adv */  
   setCurrentmA(5);
   ThisThread::sleep_for(5ms);
   setCurrentmA(0);
-  ThisThread::sleep_for(160ms);
+  ThisThread::sleep_for(120ms);
+  /* Timer to change the adv packet */
+  setCurrentmA(1);  
+  ThisThread::sleep_for(2ms);
+  setCurrentmA(0);
+  ThisThread::sleep_for(40ms);
   // measure and if dropped below some thing then wait for it to raise
   float fBankVoltage = 0;
   fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
