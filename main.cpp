@@ -26,7 +26,7 @@ AnalogIn PC2(PC_2);
 Timer tCountTime;
 void setCurrentmA(float fVal);
 std::chrono::milliseconds startUp();
-void legacyADV();
+std::chrono::milliseconds legacyADV();
 void UART_ADV_TRx();
 void startADV();
 std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
@@ -54,6 +54,13 @@ int main() {
   for (int i = 0; i < 5; i++)
   {
     timeMS = startUp();
+    printf("Time to fullycharge is %llu\n",  timeMS.count());
+  }
+
+   /* Check startup load */
+  for (int i = 0; i < 5; i++)
+  {
+    timeMS = legacyADV();
     printf("Time to fullycharge is %llu\n",  timeMS.count());
   }
 
@@ -90,10 +97,11 @@ void startADV() {
   }
 }
 
-void legacyADV() {
+std::chrono::milliseconds legacyADV() {
   setCurrentmA(4);
   ThisThread::sleep_for(5ms);
   setCurrentmA(0);
+  return waitForCapToCharge(5, 1);
 }
 
 void UART_ADV_TRx() // using only the maximum of all
