@@ -43,6 +43,19 @@ int main() {
   CS_ISet2 = 0;
   setCurrentmA(0);
   waitForCapToCharge();
+
+  printf("\n---Characterize the time taken for 50 Samples---\n");
+  for (int i = 0; i < 10; i++) {
+    tCountTime.start();
+    float fSampleAvg = sampleADC(50);
+    tCountTime.stop();
+    printf("The time taken was %llu milliseconds\n",
+           std::chrono::duration_cast<std::chrono::milliseconds>(
+               tCountTime.elapsed_time())
+               .count());
+    tCountTime.reset();
+  }
+  waitForCapToCharge();
   startUp();
   ThisThread::sleep_for(1s);
   /* -- Cost of 1 legacy ADV -- */
@@ -153,6 +166,7 @@ void waitForCapToCharge() {
   printf("At this time, Bank voltage is %f V\n", fBankVoltage);
   tCountTime.start();
   do {
+
     fBankVoltage = sampleADC(50); // PF4.read() * (VREF / SCALING_FACTOR);
     printf("After filtering - %f V\n", fBankVoltage);
     ThisThread::sleep_for(1ms);
