@@ -52,6 +52,7 @@ int main() {
 
   /* Check startup load */
   for (int i = 0; i < 1; i++) {
+
     timeMS = startUp();
     printf("Time to fully charge is %llu\n", timeMS.count());
   }
@@ -114,7 +115,7 @@ void legacyADV() {
   float fBankVoltage = 0;
   fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
   if (fBankVoltage < 6.0)
-    waitForCapToCharge(5, 5, 7.6);
+    waitForCapToCharge(5, 5, 9.6);
 }
 
 void UART_ADV_TRx() // using only the maximum of all
@@ -126,8 +127,12 @@ void UART_ADV_TRx() // using only the maximum of all
 }
 std::chrono::milliseconds startUp() {
   printf("\n1. Startup Routine \n");
+  setCurrentmA(32);
+  ThisThread::sleep_for(1ms);
+  setCurrentmA(3);
+  ThisThread::sleep_for(23ms);
   setCurrentmA(1.8);
-  ThisThread::sleep_for(237ms);
+  ThisThread::sleep_for(226ms);
   setCurrentmA(0);
   /* Sample duration 3ms and resample every 250ms */
   return waitForCapToCharge(50, 50, 6);
