@@ -56,6 +56,10 @@ int main() {
     printf("Time to fully charge is %llu\n", timeMS.count());
   }
 
+  printf("Try UART\n");
+  for(int i=0;i<4;i++)
+    UART_ADV_TRx();
+
    printf("Start Legacy ADV for 15000 times\n");
   /* Check legacy ADV load */
   for (int i = 0; i < 15000; i++) {
@@ -110,7 +114,7 @@ void legacyADV() {
   float fBankVoltage = 0;
   fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
   if (fBankVoltage < 6.0)
-    waitForCapToCharge(5, 5, 9.6);
+    waitForCapToCharge(5, 5, 7.6);
 }
 
 void UART_ADV_TRx() // using only the maximum of all
@@ -118,6 +122,7 @@ void UART_ADV_TRx() // using only the maximum of all
   setCurrentmA(2.3);
   ThisThread::sleep_for(63ms);
   setCurrentmA(0);
+  waitForCapToCharge(5, 100, 6);
 }
 std::chrono::milliseconds startUp() {
   printf("\n1. Startup Routine \n");
@@ -125,7 +130,7 @@ std::chrono::milliseconds startUp() {
   ThisThread::sleep_for(237ms);
   setCurrentmA(0);
   /* Sample duration 3ms and resample every 250ms */
-  return waitForCapToCharge(50, 50, 9.6);
+  return waitForCapToCharge(50, 50, 6);
 }
 
 std::chrono::milliseconds
@@ -142,7 +147,7 @@ waitForCapToCharge(uint16_t nSamples, uint16_t reSample, float fThreshV) {
     fBankVoltage = sampleADC(nSamples); // PF4.read() * (VREF / SCALING_FACTOR);
     ThisThread::sleep_for(reSample * 1ms);
     // printf("voltage is %f V\n", fBankVoltage);
-  } while (abs(fBankVoltage - fThreshV) > 0.3);
+  } while (abs(fBankVoltage - fThreshV) > 0.3 && (fBankVoltage<fThreshV));
   tCountTime.stop();
   timeElapsedms = std::chrono::duration_cast<std::chrono::milliseconds>(
       tCountTime.elapsed_time());
