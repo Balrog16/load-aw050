@@ -16,6 +16,7 @@ Ticker flipper;
 DigitalOut led(LED1);
 bool bTestEn = false;
 
+InterruptIn ctrlBtn(PC_13);
 DigitalOut CSEn(PB_4);
 DigitalOut CS_ISet1(PF_12);
 DigitalOut CS_ISet2(PD_15);
@@ -24,11 +25,13 @@ AnalogIn PB1(PB_1);
 AnalogIn PF4(PF_4);
 AnalogIn PC2(PC_2);
 Timer tCountTime;
+uint8_t btnCnt;
 void setCurrentmA(float fVal);
 std::chrono::milliseconds startUp();
 void legacyADV();
 void UART_ADV_TRx();
 void startADV();
+void btnPress();
 std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
                                              uint16_t reSample, float fThreshV);
 void charDelay();
@@ -43,6 +46,7 @@ int main() {
   CS_ISet1 = 0;
   CS_ISet2 = 0;
   setCurrentmA(0);
+  ctrlBtn.rise(&btnPress);
 
   /* Time to take average of 500 samples is 3 ms and
      at lowest current of 270uA, the ripple has a duration of
@@ -63,9 +67,13 @@ int main() {
 
    printf("Start Legacy ADV for 15000 times\n");
   /* Check legacy ADV load */
-  for (int i = 0; i < 15000; i++) {
+  for (int i = 0; i < 15000; i++) { 
     legacyADV();
+    if(btnCnt>0)
+        printf("Button Count is %d\n", btnCnt);
   }
+
+
 
   while (1) {
     if (bTestEn) {
@@ -220,4 +228,15 @@ void setCurrentmA(float fVal) {
     CSEn = 0;
   float setmA = (fVal - c) / m;
   aout = setmA;
+}
+
+void btnPress()
+{
+    ctrlBtn.rise(NULL);
+    wait_us(1000000);
+    btnCnt++;
+    if(btnCnt == 5)
+        btnCnt = 0;
+    ctrlBtn.rise(&btnPress);
+       
 }
