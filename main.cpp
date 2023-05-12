@@ -30,7 +30,6 @@ void setCurrentmA(float fVal);
 std::chrono::milliseconds startUp();
 void legacyADV();
 void UART_ADV_TRx();
-void startADV();
 void btnPress();
 std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
                                              uint16_t reSample, float fThreshV);
@@ -69,8 +68,8 @@ int main() {
   /* Check legacy ADV load */
   for (int i = 0; i < 15000; i++) { 
     legacyADV();
-    if(btnCnt>0)
-        printf("Button Count is %d\n", btnCnt);
+    if(btnCnt==1)
+        break;
   }
 
 
@@ -84,29 +83,8 @@ int main() {
   };
 }
 
-void startADV() {
-  uint8_t iCount = 0;
-  uint16_t advInterval = 160; // ms
-  for (iCount = 0; iCount < 4; iCount++) {
-    // Do UART
-    UART_ADV_TRx();
-    // wait
-    ThisThread::sleep_for(27ms);
-    // Adv
-    legacyADV();
-    // wait
-    ThisThread::sleep_for((advInterval - 27) * 1ms);
-  }
 
-  // wait
-  ThisThread::sleep_for(27ms);
 
-  for (iCount = 0; iCount < 10; iCount++) {
-    legacyADV();
-    // wait
-    ThisThread::sleep_for((advInterval * 1ms));
-  }
-}
 
 void legacyADV() {
   /* Legacy Adv */  
