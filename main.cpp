@@ -32,6 +32,7 @@ void legacyADV();
 void UART_ADV_TRx();
 void btnPress();
 void makeConnection();
+void readRegisters();
 std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
                                              uint16_t reSample, float fThreshV);
 void charDelay();
@@ -62,20 +63,20 @@ int main() {
   }
 
   printf("Try UART\n");
-  for(int i=0;i<4;i++)
+  for (int i = 0; i < 4; i++)
     UART_ADV_TRx();
 
-   printf("Start Legacy ADV for 15000 times\n");
+  printf("Start Legacy ADV for 15000 times\n");
   /* Check legacy ADV load */
-  for (int i = 0; i < 15000; i++) { 
+  for (int i = 0; i < 15000; i++) {
     legacyADV();
-    if(btnCnt==1)
-        break;
+    if (btnCnt == 1)
+      break;
   }
   printf("ADV stopped to make connection\n");
   makeConnection();
-
-
+  printf("Connection now moves to Trx\n");
+  readRegisters();
 
   while (1) {
     if (bTestEn) {
@@ -86,37 +87,62 @@ int main() {
   };
 }
 
-void makeConnection()
-{
-    /* Connection and Bonding */
-    float currents[] = {3.5, 0, 5.1, 0, 3.6, 0, 3.2, 0, 2.9, 0, 3, 0, 3, 0, 2.6};
-    uint8_t duration[] = {6, 10, 8, 18, 3, 21, 2, 22, 27, 20, 3, 22, 3, 22, 17 };
+void makeConnection() {
+  /* Connection and Bonding */
+  float currents[] = {3.5, 0, 5.1, 0, 3.6, 0, 3.2, 0, 2.9, 0, 3, 0, 3, 0, 2.6};
+  uint8_t duration[] = {6, 10, 8, 18, 3, 21, 2, 22, 27, 20, 3, 22, 3, 22, 17};
 
-    for(int i=0;i<15;i++)
-    {
-        setCurrentmA(currents[i]);
-        ThisThread::sleep_for(duration[i]*1ms);
-    }
+  for (int i = 0; i < 15; i++) {
+    setCurrentmA(currents[i]);
+    ThisThread::sleep_for(duration[i] * 1ms);
+  }
 
-    while(btnCnt!=2)
-    {
-        setCurrentmA(3.5);
-        ThisThread::sleep_for(2ms);
-        setCurrentmA(0);
-        ThisThread::sleep_for(350ms);
-    }
+  while (btnCnt != 2) {
+    setCurrentmA(3.5);
+    ThisThread::sleep_for(2ms);
     setCurrentmA(0);
+    ThisThread::sleep_for(350ms);
+  }
+  setCurrentmA(0);
 }
 
+void readRegisters() {
+  float currents[] = {3.3, 0, 3.5, 0, 2, 0, 2, 0};
+  uint16_t duration[] = {2, 348, 3, 7, 2, 1, 124, 213};
+  int i = 0;
+  while (btnCnt != 3) {
+    /* Check the level of the bank */
+    float fBankVoltage = 0;
+    fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
+
+    if (i == 2 && fBankVoltage < 7.0) {
+      // simple handshake
+      i =0;
+      for(i=0;i<2;i++){setCurrentmA(currents[i]);
+      ThisThread::sleep_for(duration[i]*1ms);}
+   
+    } else {
+      if (i == 2) {
+        // complete from i=2 downto 8
+         for(i=0;i<2;i++){setCurrentmA(currents[i]);
+        ThisThread::sleep_for(duration[i]*1ms);}
+      } else {
+        // handshake time
+        for(i=0;i<2;i++){setCurrentmA(currents[i]);
+      ThisThread::sleep_for(duration[i]*1ms);}
+      }
+    }
+  }
+}
 
 void legacyADV() {
-  /* Legacy Adv */  
+  /* Legacy Adv */
   setCurrentmA(5);
   ThisThread::sleep_for(5ms);
   setCurrentmA(0);
   ThisThread::sleep_for(120ms);
   /* Timer to change the adv packet */
-  setCurrentmA(1);  
+  setCurrentmA(1);
   ThisThread::sleep_for(2ms);
   setCurrentmA(0);
   ThisThread::sleep_for(40ms);
@@ -161,7 +187,7 @@ waitForCapToCharge(uint16_t nSamples, uint16_t reSample, float fThreshV) {
     fBankVoltage = sampleADC(nSamples); // PF4.read() * (VREF / SCALING_FACTOR);
     ThisThread::sleep_for(reSample * 1ms);
     // printf("voltage is %f V\n", fBankVoltage);
-  } while (abs(fBankVoltage - fThreshV) > 0.3 && (fBankVoltage<fThreshV));
+  } while (abs(fBankVoltage - fThreshV) > 0.3 && (fBankVoltage < fThreshV));
   tCountTime.stop();
   timeElapsedms = std::chrono::duration_cast<std::chrono::milliseconds>(
       tCountTime.elapsed_time());
@@ -231,13 +257,11 @@ void setCurrentmA(float fVal) {
   aout = setmA;
 }
 
-void btnPress()
-{
-    ctrlBtn.rise(NULL);
-    wait_us(1000000);
-    btnCnt++;
-    if(btnCnt == 5)
-        btnCnt = 0;
-    ctrlBtn.rise(&btnPress);
-       
+void btnPress() {
+  ctrlBtn.rise(NULL);
+  wait_us(1000000);
+  btnCnt++;
+  if (btnCnt == 5)
+    btnCnt = 0;
+  ctrlBtn.rise(&btnPress);
 }
