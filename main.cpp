@@ -31,6 +31,7 @@ std::chrono::milliseconds startUp();
 void legacyADV();
 void UART_ADV_TRx();
 void btnPress();
+void makeConnection();
 std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
                                              uint16_t reSample, float fThreshV);
 void charDelay();
@@ -71,6 +72,8 @@ int main() {
     if(btnCnt==1)
         break;
   }
+  printf("ADV stopped to make connection\n");
+  makeConnection();
 
 
 
@@ -83,7 +86,27 @@ int main() {
   };
 }
 
+void makeConnection()
+{
+    /* Connection and Bonding */
+    float currents[] = {3.5, 0, 5.1, 0, 3.6, 0, 3.2, 0, 2.9, 0, 3, 0, 3, 0, 2.6};
+    uint8_t duration[] = {6, 10, 8, 18, 3, 21, 2, 22, 27, 20, 3, 22, 3, 22, 17 };
 
+    for(int i=0;i<15;i++)
+    {
+        setCurrentmA(currents[i]);
+        ThisThread::sleep_for(duration[i]*1ms);
+    }
+
+    while(btnCnt!=2)
+    {
+        setCurrentmA(3.5);
+        ThisThread::sleep_for(2ms);
+        setCurrentmA(0);
+        ThisThread::sleep_for(350ms);
+    }
+    setCurrentmA(0);
+}
 
 
 void legacyADV() {
@@ -101,7 +124,7 @@ void legacyADV() {
   float fBankVoltage = 0;
   fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
   if (fBankVoltage < 6.0)
-    waitForCapToCharge(5, 5, 9.6);
+    waitForCapToCharge(5, 5, 7);
 }
 
 void UART_ADV_TRx() // using only the maximum of all
