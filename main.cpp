@@ -24,6 +24,7 @@ AnalogOut aout(PA_4);
 AnalogIn PB1(PB_1);
 AnalogIn PF4(PF_4);
 AnalogIn PC2(PC_2);
+void echoProfile();
 Timer tCountTime;
 uint8_t btnCnt;
 void setCurrentmA(float fVal);
@@ -77,6 +78,9 @@ int main() {
   makeConnection();
   printf("Connection now moves to Trx\n");
   readRegisters();
+  waitForCapToCharge(50, 300, 9.6);
+  printf("move to echo\n");
+  echoProfile();
 
   while (1) {
     if (bTestEn) {
@@ -106,6 +110,50 @@ void makeConnection() {
   setCurrentmA(0);
 }
 
+void echoProfile() {
+  /* Connection and Bonding */
+  float currents[] = {3, 0, 2, 0, 0, 3.3, 0, 0};
+  uint8_t duration[] = {4, 6, 50, 240, 50, 2, 250, 100};
+
+  int i = 5;
+  while (btnCnt != 4) {
+    /* Check the level of the bank */
+    float fBankVoltage = 0;
+    fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
+
+    if (i == 0 && fBankVoltage < 6.0) {
+      // simple handshake
+      
+      for (i = 5; i < 8; i++) {
+        setCurrentmA(currents[i]);
+        ThisThread::sleep_for(duration[i] * 1ms);
+      }
+      i = 0;
+
+    } else {
+      if (i == 0) {
+        // complete from i=2 downto 8
+        for (i = 0; i < 4; i++) {
+          setCurrentmA(currents[i]);
+          ThisThread::sleep_for(duration[i] * 1ms);
+        }
+      } else {
+        // handshake time
+        for (i = 5; i < 8; i++) {
+          setCurrentmA(currents[i]);
+          ThisThread::sleep_for(duration[i] * 1ms);
+        }
+        i=0;
+      }
+    }
+  
+  }
+
+
+
+  setCurrentmA(0);
+}
+
 void readRegisters() {
   float currents[] = {3.3, 0, 3.5, 0, 2, 0, 2, 0};
   uint16_t duration[] = {2, 448, 3, 7, 2, 1, 124, 313};
@@ -117,22 +165,29 @@ void readRegisters() {
 
     if (i == 2 && fBankVoltage < 6.0) {
       // simple handshake
-      i =0;
-      for(i=0;i<2;i++){setCurrentmA(currents[i]);
-      ThisThread::sleep_for(duration[i]*1ms);}
-   
+      i = 0;
+      for (i = 0; i < 2; i++) {
+        setCurrentmA(currents[i]);
+        ThisThread::sleep_for(duration[i] * 1ms);
+      }
+
     } else {
       if (i == 2) {
         // complete from i=2 downto 8
-         for(i=2;i<8;i++){setCurrentmA(currents[i]);
-        ThisThread::sleep_for(duration[i]*1ms);}
+        for (i = 2; i < 8; i++) {
+          setCurrentmA(currents[i]);
+          ThisThread::sleep_for(duration[i] * 1ms);
+        }
       } else {
         // handshake time
-        for(i=0;i<2;i++){setCurrentmA(currents[i]);
-      ThisThread::sleep_for(duration[i]*1ms);}
+        for (i = 0; i < 2; i++) {
+          setCurrentmA(currents[i]);
+          ThisThread::sleep_for(duration[i] * 1ms);
+        }
       }
     }
-    if(i==8) i=0;
+    if (i == 8)
+      i = 0;
   }
 }
 
