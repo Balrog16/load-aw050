@@ -108,14 +108,14 @@ void makeConnection() {
 
 void readRegisters() {
   float currents[] = {3.3, 0, 3.5, 0, 2, 0, 2, 0};
-  uint16_t duration[] = {2, 348, 3, 7, 2, 1, 124, 213};
+  uint16_t duration[] = {2, 448, 3, 7, 2, 1, 124, 313};
   int i = 0;
   while (btnCnt != 3) {
     /* Check the level of the bank */
     float fBankVoltage = 0;
     fBankVoltage = PF4.read() * (VREF / SCALING_FACTOR);
 
-    if (i == 2 && fBankVoltage < 7.0) {
+    if (i == 2 && fBankVoltage < 6.0) {
       // simple handshake
       i =0;
       for(i=0;i<2;i++){setCurrentmA(currents[i]);
@@ -124,7 +124,7 @@ void readRegisters() {
     } else {
       if (i == 2) {
         // complete from i=2 downto 8
-         for(i=0;i<2;i++){setCurrentmA(currents[i]);
+         for(i=2;i<8;i++){setCurrentmA(currents[i]);
         ThisThread::sleep_for(duration[i]*1ms);}
       } else {
         // handshake time
@@ -132,6 +132,7 @@ void readRegisters() {
       ThisThread::sleep_for(duration[i]*1ms);}
       }
     }
+    if(i==8) i=0;
   }
 }
 
