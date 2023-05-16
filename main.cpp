@@ -15,6 +15,7 @@
 Ticker flipper;
 DigitalOut led(LED1);
 bool bTestEn = false;
+bool bRun = false;
 
 InterruptIn ctrlBtn(PC_13);
 DigitalOut CSEn(PB_4);
@@ -53,8 +54,8 @@ int main() {
   /* Time to take average of 500 samples is 3 ms and
      at lowest current of 270uA, the ripple has a duration of
      900 ms and upon poweron from a blank state takes approx 30 sec*/
-  std::chrono::milliseconds timeMS = waitForCapToCharge(50, 300, 9.6);
-  printf("Time to fullycharge is %llu\n", timeMS.count());
+  std::chrono::milliseconds timeMS = waitForCapToCharge(50, 300, 6.6);
+  printf("Time to charge till 6.6V is %llu\n", timeMS.count());
 
   /* Check startup load */
   for (int i = 0; i < 1; i++) {
@@ -63,6 +64,9 @@ int main() {
     printf("Time to fully charge is %llu\n", timeMS.count());
   }
 
+  /* introduce a sign of life advertisement at a low pace */
+if(bRun)
+{
   printf("Try UART\n");
   for (int i = 0; i < 4; i++)
     UART_ADV_TRx();
@@ -81,7 +85,7 @@ int main() {
   waitForCapToCharge(50, 300, 9.6);
   printf("move to echo\n");
   echoProfile();
-
+}
   while (1) {
     if (bTestEn) {
       printf("ADC Data PB1 - %05.3f PC2 - %05.3f PF4 - %05.3f\n",
@@ -226,7 +230,7 @@ std::chrono::milliseconds startUp() {
   ThisThread::sleep_for(226ms);
   setCurrentmA(0);
   /* Sample duration 3ms and resample every 250ms */
-  return waitForCapToCharge(50, 50, 6);
+  return waitForCapToCharge(50, 50, 6.6);
 }
 
 std::chrono::milliseconds
