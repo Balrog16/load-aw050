@@ -35,6 +35,7 @@ void UART_ADV_TRx();
 void btnPress();
 void makeConnection();
 void readRegisters();
+void signOfLife();
 std::chrono::milliseconds waitForCapToCharge(uint16_t nSamples,
                                              uint16_t reSample, float fThreshV);
 void charDelay();
@@ -65,6 +66,13 @@ int main() {
   }
 
   /* introduce a sign of life advertisement at a low pace */
+   // measure and if dropped below some thing then wait for it to raise
+  float fBankVoltage = 0;
+  do{
+ // fBankVoltage = sampleADC(10);
+  signOfLife();
+  }while(1);   //abs(fBankVoltage - 9.6) > 0.3 && (fBankVoltage < 9.6));
+
 if(bRun)
 {
   printf("Try UART\n");
@@ -324,4 +332,14 @@ void btnPress() {
   if (btnCnt == 5)
     btnCnt = 0;
   ctrlBtn.rise(&btnPress);
+}
+
+void signOfLife()
+{
+  /* Legacy Adv only for sign of life*/
+  setCurrentmA(5);
+  ThisThread::sleep_for(5ms);
+  setCurrentmA(0);
+  ThisThread::sleep_for(750ms);
+ 
 }
