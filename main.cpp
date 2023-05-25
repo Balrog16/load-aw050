@@ -21,7 +21,8 @@ InterruptIn ctrlBtn(PC_13);
 DigitalOut CSEn(PB_4);
 DigitalOut CS_ISet1(PF_12);
 DigitalOut CS_ISet2(PD_15);
-AnalogOut aout(PA_4);
+
+DigitalOut dout(PA_4, 0);
 AnalogIn PB1(PB_1);
 AnalogIn PF4(PF_4);
 AnalogIn PC2(PC_2);
@@ -66,34 +67,33 @@ int main() {
   }
 
   /* introduce a sign of life advertisement at a low pace */
-   // measure and if dropped below some thing then wait for it to raise
+  // measure and if dropped below some thing then wait for it to raise
   float fBankVoltage = 0;
-  do{
- // fBankVoltage = sampleADC(10);
-  signOfLife();
-  }while(1);   //abs(fBankVoltage - 9.6) > 0.3 && (fBankVoltage < 9.6));
+  do {
+    // fBankVoltage = sampleADC(10);
+    signOfLife();
+  } while (1); // abs(fBankVoltage - 9.6) > 0.3 && (fBankVoltage < 9.6));
 
-if(bRun)
-{
-  printf("Try UART\n");
-  for (int i = 0; i < 4; i++)
-    UART_ADV_TRx();
+  if (bRun) {
+    printf("Try UART\n");
+    for (int i = 0; i < 4; i++)
+      UART_ADV_TRx();
 
-  printf("Start Legacy ADV for 15000 times\n");
-  /* Check legacy ADV load */
-  for (int i = 0; i < 15000; i++) {
-    legacyADV();
-    if (btnCnt == 1)
-      break;
+    printf("Start Legacy ADV for 15000 times\n");
+    /* Check legacy ADV load */
+    for (int i = 0; i < 15000; i++) {
+      legacyADV();
+      if (btnCnt == 1)
+        break;
+    }
+    printf("ADV stopped to make connection\n");
+    makeConnection();
+    printf("Connection now moves to Trx\n");
+    readRegisters();
+    waitForCapToCharge(50, 300, 9.6);
+    printf("move to echo\n");
+    echoProfile();
   }
-  printf("ADV stopped to make connection\n");
-  makeConnection();
-  printf("Connection now moves to Trx\n");
-  readRegisters();
-  waitForCapToCharge(50, 300, 9.6);
-  printf("move to echo\n");
-  echoProfile();
-}
   while (1) {
     if (bTestEn) {
       printf("ADC Data PB1 - %05.3f PC2 - %05.3f PF4 - %05.3f\n",
@@ -135,7 +135,7 @@ void echoProfile() {
 
     if (i == 0 && fBankVoltage < 6.0) {
       // simple handshake
-      
+
       for (i = 5; i < 8; i++) {
         setCurrentmA(currents[i]);
         ThisThread::sleep_for(duration[i] * 1ms);
@@ -155,13 +155,10 @@ void echoProfile() {
           setCurrentmA(currents[i]);
           ThisThread::sleep_for(duration[i] * 1ms);
         }
-        i=0;
+        i = 0;
       }
     }
-  
   }
-
-
 
   setCurrentmA(0);
 }
@@ -289,6 +286,7 @@ float sampleADC(int nSamples) {
 
 void setCurrentmA(float fVal) {
 
+  AnalogOut aout(PA_4);
   float m = 0, c = 0;
 
   if (fVal > 0 && fVal < 0.35)
@@ -317,10 +315,14 @@ void setCurrentmA(float fVal) {
   // if fVal is zero .. put it to Sleep
   if (fVal == 0) {
     CSEn = 1;
+    CS_ISet1 = 1;
     m = 1.0;
     c = 0.0;
   } else
+  {
     CSEn = 0;
+    CS_ISet1 =
+  }
   float setmA = (fVal - c) / m;
   aout = setmA;
 }
@@ -334,12 +336,10 @@ void btnPress() {
   ctrlBtn.rise(&btnPress);
 }
 
-void signOfLife()
-{
+void signOfLife() {
   /* Legacy Adv only for sign of life*/
   setCurrentmA(5);
   ThisThread::sleep_for(5ms);
   setCurrentmA(0);
   ThisThread::sleep_for(750ms);
- 
 }
